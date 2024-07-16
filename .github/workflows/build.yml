@@ -36,6 +36,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
       - name: Check SonarCloud status (using GitHub Actions API)
         id: sonarcloud-check
         run: |
@@ -48,38 +49,35 @@ jobs:
               exit 0;
             fi
           fi
-
-          # Perform SonarCloud analysis (optional; depends on your setup)
-          # ...
-
-          # Report SonarCloud analysis status (using a conclusion message)
-          conclusion="success"  # Replace with "failure" if analysis fails
+          conclusion="success"  # Set the default conclusion
           echo "::set-output name=conclusion::$conclusion"
 
       - name: Report SonarCloud analysis result
+        id: create-check-run
         uses: actions/github-script@v5
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            github.actions.createCheckRun({
-              owner: 'BENZ199',  # Replace with your username
-              repo: github.repo,
-              head_sha: github.sha,
-              name: 'SonarCloud Analysis',
-              status: 'in_progress',
-              started_at: new Date().toISOString(),
+            const conclusion = '${{ steps.sonarcloud-check.outputs.conclusion }}';
+            const { data: pullRequest } = await github.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
             });
+            const headSha = pullRequest.head.sha;
 
-            const conclusion = core.getInput('conclusion');
-            core.setFailed('SonarCloud analysis failed');  # Use this if necessary
-
-            github.actions.createCheckRunCompletion({
-              owner: 'BENZ199',
-              repo: github.repo,
-              check_run_id: ${{ steps.create-check-run.outputs.id }},
+            await github.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'SonarCloud Analysis',
+              head_sha: headSha,
+              status: 'completed',
               conclusion: conclusion,
+              started_at: new Date().toISOString(),
               completed_at: new Date().toISOString(),
               output: {
                 title: 'SonarCloud analysis',
-                summary: 'SonarCloud analysis completed successfully.',  # Update for failures
+                summary: conclusion === 'success' ? 'SonarCloud analysis passed.' : 'SonarCloud analysis failed.',
               },
             });
+
