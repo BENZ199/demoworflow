@@ -55,7 +55,7 @@ jobs:
 
       - name: Set SonarCloud status as check
         if: steps.sonarcloud-check.outcome == 'success'
-        uses: github/script-check-action@main
+        uses: github/status-check@v2
         with:
           status: success
           check_name: SonarCloud Analysis 
