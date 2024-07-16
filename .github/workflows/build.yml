@@ -36,4 +36,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Check SonarCloud status
+        id: sonarcloud-check
+        run: |
+          SONAR_ORG="${SONAR_ORGANIZATION}"
+          SONAR_PROJECT="${SONAR_PROJECT_KEY}"
+          SONAR_URL="https://sonarcloud.io/api/project_badges/measure?project=${SONAR_ORG}%3A${SONAR_PROJECT}&metric=alert_status"
+          SONAR_RESULT=$(curl -s -u "${SONAR_TOKEN}:" "$SONAR_URL" | jq -r '.projectStatus.status')
+    
+          if [ "$SONAR_RESULT" = "OK" ]; then
+            echo "SonarCloud check passed";
+          else
+            echo "SonarCloud check failed";
+            exit 1;  # Fail the workflow if SonarCloud check fails
+          fi
+
+
+
+      - name: Set SonarCloud status as check
+        if: steps.sonarcloud-check.outcome == 'success'
+        uses: github/script-check-action@main
+        with:
+          status: success
+          check_name: SonarCloud Analysis 
      
