@@ -2,7 +2,7 @@ from turtle import *
 from random import randint
 
 
-tsize = 20
+tsize = 30
 s_width = 200
 s_height = 180
 class sprite (Turtle):
